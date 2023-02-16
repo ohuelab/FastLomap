@@ -1179,7 +1179,7 @@ graph_group.add_argument('-l', '--links-file', type=str, default='', \
                               'should use the provided score and force this link to be used in the final graph.')
 graph_group.add_argument('-k', '--known-actives-file', type=str, default='', \
                          help='Specify a filename listing the molecule files that should be initialised as "known actives", one per line')
-graph_group.add_argument('--chunk-mode', type=bool, action='store_true', \
+graph_group.add_argument('--chunk-mode', action='store_true', \
                          help='Run graph generation with the number of calculations dependent on the node by checking constraints in chunks.')
 graph_group.add_argument('--chunk-scale', type=int, default=10, \
                          help='In chunk mode, how many times the number of chunks to split.')
