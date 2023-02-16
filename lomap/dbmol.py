@@ -115,7 +115,9 @@ class DBMolecules(object):
                  fast: bool = False,
                  links_file: Optional[str] = None,
                  known_actives_file: Optional[str] = None,
-                 max_dist_from_actives: int = 2
+                 max_dist_from_actives: int = 2,
+                 chunk_mode: bool = False,
+                 chunk_scale: int = 10,
                  ):
 
         """
@@ -188,6 +190,8 @@ class DBMolecules(object):
             raise TypeError('The display flag is not a bool type')
         elif not isinstance(radial, bool):
             raise TypeError('The radial flag is not a bool type')
+        elif not isinstance(chunk_mode, bool):
+            raise TypeError('The chunk_mode flag is not a bool type')
 
         self.options = dict()
         CheckDir._check_directory(directory)
@@ -225,6 +229,8 @@ class DBMolecules(object):
         self.options['fast'] = bool(fast)
         self.options['links_file'] = links_file
         self.options['known_actives_file'] = known_actives_file
+        self.options['chunk_mode'] = bool(chunk_mode)
+        self.options['chunk_scale'] = chunk_scale
 
         # Internal list container used to store the loaded molecule objects
         self._list = self.read_molecule_files()
@@ -1060,7 +1066,7 @@ def startup():
                    output_no_graph=ops.output_no_graph, display=ops.display,
                    allow_tree=ops.allow_tree, max=ops.max, max_dist_from_actives=ops.max_dist_from_actives,
                    cutoff=ops.cutoff, radial=ops.radial, hub=ops.hub, fast=ops.fast, links_file=ops.links_file,
-                   known_actives_file=ops.known_actives_file,
+                   known_actives_file=ops.known_actives_file, chunk_mode=ops.chunk_mode, chunk_scale=ops.chunk_scale
                    )
 
 
@@ -1086,7 +1092,9 @@ def _startup_inner(
         hub=None,
         fast=False,
         links_file='',
-        known_actives_file=''):
+        known_actives_file='',
+        chunk_mode=False,
+        chunk_scale = 10):
     # Inside function of CLI interface, for start of "library" like calling
 
     # Molecule DataBase initialized with the passed user options
@@ -1094,7 +1102,7 @@ def _startup_inner(
                          max3d, element_change, output, name, output_no_images,
                          output_no_graph, display, allow_tree, max, cutoff,
                          radial, hub, fast, links_file,
-                         known_actives_file, max_dist_from_actives)
+                         known_actives_file, max_dist_from_actives, chunk_mode, chunk_scale)
     # Similarity score linear array generation
     strict, loose = db_mol.build_matrices()
 
@@ -1171,7 +1179,10 @@ graph_group.add_argument('-l', '--links-file', type=str, default='', \
                               'should use the provided score and force this link to be used in the final graph.')
 graph_group.add_argument('-k', '--known-actives-file', type=str, default='', \
                          help='Specify a filename listing the molecule files that should be initialised as "known actives", one per line')
-
+graph_group.add_argument('--chunk-mode', type=bool, action='store_true', \
+                         help='Run graph generation with the number of calculations dependent on the node by checking constraints in chunks.')
+graph_group.add_argument('--chunk-scale', type=int, default=10, \
+                         help='In chunk mode, how many times the number of chunks to split.')
 # ------------------------------------------------------------------
 
 
