@@ -1143,7 +1143,7 @@ mcs_group.add_argument('-L', '--element_change', default=True, type=bool,
                        help="Whether to allow element changes in mappings")
 
 out_group = parser.add_argument_group('Output setting')
-out_group.add_argument('-o', '--output', default=True, action='store_true', \
+out_group.add_argument('-o', '--output', default=True, action='store_false', \
                        help='Generates output files')
 out_group.add_argument('-n', '--name', type=str, default='out', \
                        help='File name prefix used to generate the output files')

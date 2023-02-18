@@ -359,10 +359,10 @@ class GraphGen(object):
                     ret = chunk_process(edge_chunk[i:i + chunk_size], data_chunk[i:i + chunk_size], chunk_size, idx + i)
                     # If unremovable edges are found, try to check the rest of the chunk
                     if not ret:
-                        logging.info('Rechunk: #E={}, {} {}'.format(len(subgraph.edges()), idx + i + chunk_size, idx + len(edge_chunk)))
-                        chunk_process(edge_chunk[i + chunk_size:len(edge_chunk)], data_chunk[i + chunk_size:len(data_chunk)], chunk_size * 10, idx + i + chunk_size)
-                        break
-
+                        if check_chunk(edge_chunk[i + chunk_size:len(edge_chunk)], data_chunk[i + chunk_size:len(data_chunk)]):
+                            # Remain edges can be removed
+                            break
+        
         # Check constraints by chunk
         def check_chunk(edge_chunk, data_chunk):
             similarities = [d['similarity'] < 1.0 for d in data_chunk]
@@ -421,7 +421,6 @@ class GraphGen(object):
                 data = [{'similarity': d, 'strict_flag': True} for i, j, d in weightsList]
                 chunk_size = self.chunk_scale **int(np.log(len(weightsList))/np.log(self.chunk_scale))
                 # Process edges in chunks
-                chunk_process(edges, data, chunk_size, i)
                 for i in range(0, len(edges), chunk_size):
                     edge_chunk = edges[i:i + chunk_size]
                     data_chunk = data[i:i + chunk_size]
