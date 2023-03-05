@@ -293,18 +293,17 @@ class GraphGen(object):
 
         totalEdges = 0
 
-        for subgraph in self.initialSubgraphList:
+        for i, subgraph in enumerate(self.initialSubgraphList):
 
-            weightsList = self.subgraphScoresLists[self.initialSubgraphList.index(subgraph)]
+            weightsList = self.subgraphScoresLists[i]
 
             index = 0
 
-            for edge in weightsList:
+            for j, edge in enumerate(weightsList):
 
                 if edge[2] < self.similarityScoresLimit:
                     subgraph.remove_edge(edge[0], edge[1])
-
-                    index = weightsList.index(edge)
+                    index = j
 
             del weightsList[:index + 1]
 
@@ -383,9 +382,9 @@ class GraphGen(object):
                     subgraph.add_edge(i, j, **d)
                 return False
 
-        for subgraph in self.workingSubgraphsList:
+        for k, subgraph in enumerate(self.workingSubgraphsList):
 
-            weightsList = self.workingSubgraphScoresLists[self.workingSubgraphsList.index(subgraph)]
+            weightsList = self.workingSubgraphScoresLists[k]
 
             # ISSUE ORDER IS ORIGINATED HERE
             # weightsList = sorted(weightsList, key = itemgetter(1))
