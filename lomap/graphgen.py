@@ -114,6 +114,12 @@ class GraphGen(object):
 
         self.edge_labels = True
 
+
+        if dbase.options['chunk_scale'] > 1:
+            self.chunk_scale = dbase.options['chunk_scale']
+        else:
+            self.chunk_scale = 10
+
         # The following Section has been strongly copied/adapted from the original implementation
 
         # Generate a list related to the disconnected graphs present in the initial graph
@@ -287,18 +293,17 @@ class GraphGen(object):
 
         totalEdges = 0
 
-        for subgraph in self.initialSubgraphList:
+        for i, subgraph in enumerate(self.initialSubgraphList):
 
-            weightsList = self.subgraphScoresLists[self.initialSubgraphList.index(subgraph)]
+            weightsList = self.subgraphScoresLists[i]
 
             index = 0
 
-            for edge in weightsList:
+            for j, edge in enumerate(weightsList):
 
                 if edge[2] < self.similarityScoresLimit:
                     subgraph.remove_edge(edge[0], edge[1])
-
-                    index = weightsList.index(edge)
+                    index = j
 
             del weightsList[:index + 1]
 
@@ -335,9 +340,51 @@ class GraphGen(object):
         Minimize edges in each subgraph while ensuring constraints are met
         """
 
-        for subgraph in self.workingSubgraphsList:
+        # Remove edges in chunks and check constraints
+        def chunk_process(edge_chunk, data_chunk, chunk_size, idx):
+            if check_chunk(edge_chunk, data_chunk):
+                # Edges can be removed
+                return True
+            elif chunk_size == 1:
+                # The edge cannot be removed
+                return False
+            else:
+                # Re-split when there are multiple chunks
+                logging.info('Split: #E={}, {} {}'.format(len(subgraph.edges()), idx, idx + chunk_size))
+                # Run chunk_process recursively with smaller chunks
+                chunk_size = max(chunk_size // self.chunk_scale, 1)
+                for i in range(0, len(edge_chunk), chunk_size):
+                    logging.info('Process: #E={}, {} {}'.format(len(subgraph.edges()), idx + i, idx + i + chunk_size))
+                    ret = chunk_process(edge_chunk[i:i + chunk_size], data_chunk[i:i + chunk_size], chunk_size, idx + i)
+                    # If unremovable edges are found, try to check the rest of the chunk
+                    if not ret:
+                        if check_chunk(edge_chunk[i + chunk_size:len(edge_chunk)], data_chunk[i + chunk_size:len(data_chunk)]):
+                            # Remain edges can be removed
+                            break
+        
+        # Check constraints by chunk
+        def check_chunk(edge_chunk, data_chunk):
+            similarities = [d['similarity'] < 1.0 for d in data_chunk]
+            if not all(similarities):
+                if not any(similarities):
+                    logging.info('Skip (similarity=1.0): {}'.format(len(edge_chunk)))
+                    return True
+                # Restore edges because they contain edges that cannot be removed
+                return False
+            else:
+                # Remove edges in the chunk and check constraints
+                subgraph.remove_edges_from(edge_chunk)
+                if self.check_constraints(subgraph, numberOfComponents):
+                    logging.info('Removed: {}'.format(len(edge_chunk)))
+                    return True
+                # Restore edges because constraints are not satisfied
+                for (i, j), d in zip(edge_chunk, data_chunk):
+                    subgraph.add_edge(i, j, **d)
+                return False
 
-            weightsList = self.workingSubgraphScoresLists[self.workingSubgraphsList.index(subgraph)]
+        for k, subgraph in enumerate(self.workingSubgraphsList):
+
+            weightsList = self.workingSubgraphScoresLists[k]
 
             # ISSUE ORDER IS ORIGINATED HERE
             # weightsList = sorted(weightsList, key = itemgetter(1))
@@ -348,8 +395,7 @@ class GraphGen(object):
             numberOfComponents = nx.number_connected_components(subgraph)
             self.distanceToActiveFailures = self.count_distance_to_active_failures(subgraph)
 
-            if len(subgraph.edges()) > 2:  # Graphs must have at least 3 edges to be minimzed
-
+            if len(subgraph.edges()) > 2 and not self.dbase.options['chunk_mode']:  # Graphs must have at least 3 edges to be minimzed
                 for edge in weightsList:
                     if self.lead_index is not None:
                         # Here the radial option is appplied, will check if the remove_edge is connect to
@@ -368,6 +414,16 @@ class GraphGen(object):
                             logging.info("Removed edge %d-%d" % (edge[0],edge[1]))
                     else:
                         logging.info("Skipping edge %d-%d as it has similarity 1" % (edge[0],edge[1]))
+            elif len(subgraph.edges()) > 2:
+                # radial option is not supported in fast mode
+                edges = [(i, j) for i, j, d in weightsList]
+                data = [{'similarity': d, 'strict_flag': True} for i, j, d in weightsList]
+                chunk_size = self.chunk_scale **int(np.log(len(weightsList))/np.log(self.chunk_scale))
+                # Process edges in chunks
+                for i in range(0, len(edges), chunk_size):
+                    edge_chunk = edges[i:i + chunk_size]
+                    data_chunk = data[i:i + chunk_size]
+                    chunk_process(edge_chunk, data_chunk, chunk_size, i)
 
     def add_surrounding_edges(self):
         """
@@ -560,12 +616,10 @@ class GraphGen(object):
         """
 
         withinMaxDistance = True
-
-        for node in subgraph:
-            eccentricity = nx.eccentricity(subgraph, node)
-            if eccentricity > self.maxPathLength:
-                withinMaxDistance = False
-                logging.info("Rejecting edge deletion on graph diameter for node %d" % (node))
+        # usebounds option is a diameter calculation linear in the number of nodes in most cases
+        if nx.diameter(subgraph, usebounds = True) > self.maxPathLength:
+            withinMaxDistance = False
+            logging.info("Rejecting edge deletion on graph diameter")
 
         return withinMaxDistance
 
