@@ -1,5 +1,3 @@
-[![CI](https://github.com/ohuelab/FastLomap/actions/workflows/CI.yaml/badge.svg)](https://github.com/ohuelab/FastLomap/actions/workflows/CI.yaml)
-
 # FastLomap
 
 FastLomap has modified the Lomap algorithm to handle perturbation maps for hundreds of free energy perturbation calculations.
