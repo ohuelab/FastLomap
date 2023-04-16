@@ -17,3 +17,7 @@ Authors
 -------
 
 See [AUTHORS.md](https://github.com/ohuelab/FastLomap/blob/main/AUTHORS.md)
+
+Reference
+-------
+Furui K, Ohue M. [**Faster Lead Optimization Mapper Algorithm for Large-Scale Relative Free Energy Perturbation**](https://arxiv.org/abs/2304.04713). _arXiv preprint_, 2304.04713, 2023.
