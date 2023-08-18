@@ -758,7 +758,7 @@ class MCS(object):
                                  ringMatchesRingOnly=True,
                                  completeRingsOnly=False,
                                  matchChiralTag=False,
-                                 seedSmarts=seedSmarts))
+                                 seedSmarts=seedSmarts)
 
         # Checking
         if mcs.canceled:

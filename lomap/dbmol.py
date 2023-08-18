@@ -560,7 +560,7 @@ class DBMolecules(object):
                             verbose=self.options['verbose'],
                             threed=self.options['threed'],
                             max3d=self.options['max3d'],
-                            element_change=self.options['element_change']
+                            element_change=self.options['element_change'],
                             seedSmarts=self.options['seedSmarts']
                             )
                         ml = MC.all_atom_match_list()
@@ -1098,7 +1098,7 @@ def _startup_inner(
         links_file='',
         known_actives_file='',
         chunk_mode=False,
-        chunk_scale = 10
+        chunk_scale = 10,
         seedSmarts=''):
     # Inside function of CLI interface, for start of "library" like calling
 
