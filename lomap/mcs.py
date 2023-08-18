@@ -73,7 +73,7 @@ class MCS(object):
 
     def __init__(self, moli, molj, time: int = 20, verbose: str = 'info',
                  max3d: float = 1000.0, threed: bool = False,
-                 element_change: bool = True):
+                 element_change: bool = True, seedSmarts: str = ''):
         """
         Initialization function
 
@@ -108,6 +108,7 @@ class MCS(object):
             'max3d': max3d,
             'threed': threed,
             'element_change': element_change,
+            'seedSmarts': seedSmarts
         }
 
         def substructure_centre(mol, mol_sub):
@@ -604,7 +605,8 @@ class MCS(object):
                                matchValences=False,
                                ringMatchesRingOnly=True,
                                completeRingsOnly=True,
-                               matchChiralTag=False)
+                               matchChiralTag=False,
+                               seedSmarts=self.options['seedSmarts'])
 
         # Note that we need matchChiralTag=False as we want to match chiral atoms with different
         # parities, we just need to trim the MCS to the largest possible match that doesn't have
@@ -707,7 +709,7 @@ class MCS(object):
         return mapping
 
     @staticmethod
-    def getMapping(moli, molj, hydrogens=False, fname=None, time_out=150):
+    def getMapping(moli, molj, hydrogens=False, fname=None, time_out=150, seedSmarts=''):
 
         """
         Compute the MCS between two passed molecules
@@ -755,7 +757,8 @@ class MCS(object):
                                  matchValences=False,
                                  ringMatchesRingOnly=True,
                                  completeRingsOnly=False,
-                                 matchChiralTag=False)
+                                 matchChiralTag=False,
+                                 seedSmarts=seedSmarts))
 
         # Checking
         if mcs.canceled:

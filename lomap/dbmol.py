@@ -118,6 +118,7 @@ class DBMolecules(object):
                  max_dist_from_actives: int = 2,
                  chunk_mode: bool = False,
                  chunk_scale: int = 10,
+                 seedSmarts: str = ''
                  ):
 
         """
@@ -231,6 +232,7 @@ class DBMolecules(object):
         self.options['known_actives_file'] = known_actives_file
         self.options['chunk_mode'] = bool(chunk_mode)
         self.options['chunk_scale'] = chunk_scale
+        self.options['seedSmarts'] = seedSmarts
 
         # Internal list container used to store the loaded molecule objects
         self._list = self.read_molecule_files()
@@ -558,7 +560,9 @@ class DBMolecules(object):
                             verbose=self.options['verbose'],
                             threed=self.options['threed'],
                             max3d=self.options['max3d'],
-                            element_change=self.options['element_change'])
+                            element_change=self.options['element_change']
+                            seedSmarts=self.options['seedSmarts']
+                            )
                         ml = MC.all_atom_match_list()
                         MCS_map[(i, j)] = ml
 
@@ -1066,7 +1070,7 @@ def startup():
                    output_no_graph=ops.output_no_graph, display=ops.display,
                    allow_tree=ops.allow_tree, max=ops.max, max_dist_from_actives=ops.max_dist_from_actives,
                    cutoff=ops.cutoff, radial=ops.radial, hub=ops.hub, fast=ops.fast, links_file=ops.links_file,
-                   known_actives_file=ops.known_actives_file, chunk_mode=ops.chunk_mode, chunk_scale=ops.chunk_scale
+                   known_actives_file=ops.known_actives_file, chunk_mode=ops.chunk_mode, chunk_scale=ops.chunk_scale, seedSmarts=ops.seedSmarts
                    )
 
 
@@ -1094,7 +1098,8 @@ def _startup_inner(
         links_file='',
         known_actives_file='',
         chunk_mode=False,
-        chunk_scale = 10):
+        chunk_scale = 10
+        seedSmarts=''):
     # Inside function of CLI interface, for start of "library" like calling
 
     # Molecule DataBase initialized with the passed user options
@@ -1102,7 +1107,7 @@ def _startup_inner(
                          max3d, element_change, output, name, output_no_images,
                          output_no_graph, display, allow_tree, max, cutoff,
                          radial, hub, fast, links_file,
-                         known_actives_file, max_dist_from_actives, chunk_mode, chunk_scale)
+                         known_actives_file, max_dist_from_actives, chunk_mode, chunk_scale, seedSmarts)
     # Similarity score linear array generation
     strict, loose = db_mol.build_matrices()
 
@@ -1183,6 +1188,9 @@ graph_group.add_argument('--chunk-mode', action='store_true', \
                          help='Run graph generation with the number of calculations dependent on the node by checking constraints in chunks.')
 graph_group.add_argument('--chunk-scale', type=int, default=10, \
                          help='In chunk mode, how many times the number of chunks to split.')
+graph_group.add_argument('--seedSmarts', type=str, default='', \
+                         help='Specify the Smarts string that is the seed for the maximum common substructure calculation.'
+                              'If you specify an appropriate Smarts string, score calculation can be accelerated.')
 # ------------------------------------------------------------------
 
 
