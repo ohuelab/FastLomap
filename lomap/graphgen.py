@@ -590,7 +590,7 @@ class GraphGen(object):
         """
 
         hasCovering = True
-        if self.dbase.options['node_mode']
+        if self.dbase.options['node_mode']:
             # Optionally determine cycle constraints from non-cyclic nodes
             if self.find_non_cyclic_nodes(subgraph).difference(self.nonCycleNodesSet):
                 hasCovering = False
