@@ -361,7 +361,7 @@ class GraphGen(object):
                         if check_chunk(edge_chunk[i + chunk_size:len(edge_chunk)], data_chunk[i + chunk_size:len(data_chunk)]):
                             # Remain edges can be removed
                             break
-        
+
         # Check constraints by chunk
         def check_chunk(edge_chunk, data_chunk):
             similarities = [d['similarity'] < 1.0 for d in data_chunk]
@@ -590,11 +590,16 @@ class GraphGen(object):
         """
 
         hasCovering = True
-
-        # Have we increased the number of non-cyclic edges?
-        if self.find_non_cyclic_edges(subgraph).difference(self.nonCycleEdgesSet):
-            hasCovering = False
-            logging.info("Rejecting edge deletion on cycle covering")
+        if self.dbase.options['node_mode']
+            # Optionally determine cycle constraints from non-cyclic nodes
+            if self.find_non_cyclic_nodes(subgraph).difference(self.nonCycleNodesSet):
+                hasCovering = False
+                logging.info("Rejecting edge deletion on cycle covering (nodes)")
+        else:
+            # Have we increased the number of non-cyclic edges?
+            if self.find_non_cyclic_edges(subgraph).difference(self.nonCycleEdgesSet):
+                hasCovering = False
+                logging.info("Rejecting edge deletion on cycle covering")
 
         return hasCovering
 
