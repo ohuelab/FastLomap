@@ -1070,7 +1070,9 @@ def startup():
                    output=ops.output, name=ops.name, output_no_images=ops.output_no_images,
                    output_no_graph=ops.output_no_graph, display=ops.display,
                    allow_tree=ops.allow_tree, max=ops.max, max_dist_from_actives=ops.max_dist_from_actives,
-                   cutoff=ops.cutoff, radial=ops.radial, hub=ops.hub, fast=ops.fast, links_file=ops.links_file)
+                   cutoff=ops.cutoff, radial=ops.radial, hub=ops.hub, fast=ops.fast, links_file=ops.links_file,
+                   known_actives_file=ops.known_actives_file, chunk_mode=ops.chunk_mode, chunk_scale=ops.chunk_scale, node_mode=ops.node_mode
+                   )
 
 
 def _startup_inner(
@@ -1188,7 +1190,7 @@ graph_group.add_argument('--chunk-mode', action='store_true', \
 graph_group.add_argument('--chunk-scale', type=int, default=10, \
                          help='In chunk mode, how many times the number of chunks to split.')
 graph_group.add_argument('--node-mode', action='store_true', \
-                         help='Cycle constraints at vertices, not edges.'
+                         help='Cycle constraints at vertices, not edges.')
 # ------------------------------------------------------------------
 
 
