@@ -46,7 +46,9 @@ import logging
 import tempfile
 import shutil
 import traceback
+import itertools
 
+from utils import find_bridges
 __all__ = ['GraphGen']
 
 
@@ -467,22 +469,14 @@ class GraphGen(object):
 
         """
 
-        missingNodesSet = set()
-
-        cycleNodes = []
-
         cycleList = nx.cycle_basis(subgraph)
-
-        cycleNodes = [node for cycle in cycleList for node in cycle]
-
+        cycleNodes = set(list(itertools.chain.from_iterable(cycleList)))
         missingNodesSet = set([node for node in subgraph.nodes() if node not in cycleNodes])
-
         return missingNodesSet
 
     def find_non_cyclic_edges(self, subgraph):
         """
-        Generates a set of edges of the subgraph that are not in a cycle (called
-        "bridges" in networkX terminology).
+        Generates a set of edges of the subgraph that are not in a cycle.
 
         Parameters
         ---------
@@ -496,7 +490,7 @@ class GraphGen(object):
 
         """
 
-        missingEdgesSet = set(nx.bridges(subgraph))
+        missingEdgesSet = find_bridges(subgraph)
 
         return missingEdgesSet
 
