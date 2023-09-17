@@ -587,8 +587,15 @@ class MCS(object):
 
         # Get maps of the atom correspondences between the no hydrogen
         # molecules and the original molecules
-        self._map_moli_noh = self._heavy_to_all_pos_remap(self._moli_noh, moli)
-        self._map_molj_noh = self._heavy_to_all_pos_remap(self._molj_noh, molj)
+        if moli.GetNumAtoms()!=self._moli_noh.GetNumAtoms():
+            self._map_moli_noh = self._heavy_to_all_pos_remap(self._moli_noh, moli)
+        else:
+            self._map_moli_noh = {i:i for i in range(moli.GetNumAtoms())}
+
+        if molj.GetNumAtoms()!=self._molj_noh.GetNumAtoms():
+            self._map_molj_noh = self._heavy_to_all_pos_remap(self._molj_noh, molj)
+        else:
+            self._map_molj_noh = {i:i for i in range(molj.GetNumAtoms())}
 
         # MCS calculation. In RDKit the MCS is a smart string. Ring atoms are
         # always mapped in ring atoms.
@@ -823,6 +830,32 @@ class MCS(object):
             DrawingOptions.includeAtomNumbers=False
 
         return map_moli_to_molj
+
+    @staticmethod
+    def get_edge_bonds(mol, sub_match):
+        """Compute the edge bonds
+
+        Parameters
+        ----------
+        mol : RDKit molecule object
+            the molecule used to perform the MCS calculation
+        sub_match : list
+            the list of atom indexes which are part of the MCS
+
+        Returns
+        -------
+        edge_bonds : dict
+            the dictionary of the edge bonds in the MCS
+        """
+        edge_bonds = {}
+        for b in mol.GetBonds():
+            end_idx = b.GetEndAtomIdx()
+            begin_idx = b.GetBeginAtomIdx()
+            if end_idx in sub_match and begin_idx not in sub_match:
+                edge_bonds[sub_match.index(end_idx)] = begin_idx
+            elif begin_idx in sub_match and end_idx not in sub_match:
+                edge_bonds[sub_match.index(begin_idx)] = end_idx
+        return edge_bonds
 
 
     ############ MCS BASED RULES ############
@@ -1086,20 +1119,16 @@ class MCS(object):
 
         is_bad=False
 
-        for i in range(0,len(moli_sub)):
-            edge_bondsi = [b.GetBeginAtomIdx() for b in moli.GetBonds()
-                           if (b.GetEndAtomIdx()==moli_sub[i]
-                               and not b.GetBeginAtomIdx() in moli_sub) ]
-            edge_bondsi += [b.GetEndAtomIdx() for b in moli.GetBonds() if (b.GetBeginAtomIdx()==moli_sub[i] and not b.GetEndAtomIdx() in moli_sub) ]
-            edge_bondsj = [ b.GetBeginAtomIdx() for b in molj.GetBonds() if (b.GetEndAtomIdx()==molj_sub[i] and not b.GetBeginAtomIdx() in molj_sub) ]
-            edge_bondsj += [ b.GetEndAtomIdx() for b in molj.GetBonds() if (b.GetBeginAtomIdx()==molj_sub[i] and not b.GetEndAtomIdx() in molj_sub) ]
-            #print("Atom",i,"index",moli_sub[i],"edge atoms on mol 1 are",edge_bondsi);
-            #print("Atom",i,"index",molj_sub[i],"edge atoms on mol 2 are",edge_bondsj);
-
-            for edgeAtom_i in edge_bondsi:
-                for edgeAtom_j in edge_bondsj:
-                    if (moli.GetAtomWithIdx(edgeAtom_i).IsInRing() ^ molj.GetAtomWithIdx(edgeAtom_j).IsInRing()):
-                        is_bad=True
+        edge_bondsi = self.get_edge_bonds(moli, moli_sub)
+        edge_bondsj = self.get_edge_bonds(molj, molj_sub)
+        for i in edge_bondsi:
+            if i in edge_bondsj:
+                edgeAtom_i, edgeAtom_j = edge_bondsi[i], edge_bondsj[i]
+                if (moli.GetAtomWithIdx(edgeAtom_i).IsInRing() ^ molj.GetAtomWithIdx(edgeAtom_j).IsInRing()):
+                    is_bad=True
+                    break
+            if is_bad:
+                break
 
         mescore = math.exp(-1 * self.beta * penalty) if is_bad else 1
         logging.info('methyl-to-ring transformation score is %f' %(mescore))
@@ -1124,28 +1153,22 @@ class MCS(object):
 
         is_bad=False
 
-        for i in range(0,len(moli_sub)):
-            edge_bondsi = [b.GetBeginAtomIdx() for b in moli.GetBonds()
-                           if (b.GetEndAtomIdx() == moli_sub[i] and not b.GetBeginAtomIdx() in moli_sub)]
-            edge_bondsi += [b.GetEndAtomIdx() for b in moli.GetBonds()
-                            if (b.GetBeginAtomIdx() == moli_sub[i] and not b.GetEndAtomIdx() in moli_sub)]
-            edge_bondsj = [b.GetBeginAtomIdx() for b in molj.GetBonds()
-                           if (b.GetEndAtomIdx() == molj_sub[i] and not b.GetBeginAtomIdx() in molj_sub)]
-            edge_bondsj += [b.GetEndAtomIdx() for b in molj.GetBonds()
-                            if (b.GetBeginAtomIdx() == molj_sub[i] and not b.GetEndAtomIdx() in molj_sub)]
-            #print("Atom",i,"index",moli_sub[i],"edge atoms on mol 1 are",edge_bondsi);
-            #print("Atom",i,"index",molj_sub[i],"edge atoms on mol 2 are",edge_bondsj);
-
-            for edgeAtom_i in edge_bondsi:
-                for edgeAtom_j in edge_bondsj:
-                    #print("Checking ring for atom",edgeAtom_i,edgeAtom_j,moli.GetAtomWithIdx(edgeAtom_i).IsInRing(),molj.GetAtomWithIdx(edgeAtom_j).IsInRing())
-                    if (moli.GetAtomWithIdx(edgeAtom_i).IsInRing() and molj.GetAtomWithIdx(edgeAtom_j).IsInRing()):
-                        for ring_size in range(3,8):
-                            if (moli.GetAtomWithIdx(edgeAtom_i).IsInRingSize(ring_size) ^ molj.GetAtomWithIdx(edgeAtom_j).IsInRingSize(ring_size)):
-                                logging.info('tRansforming ring sizes score is 0 based on atom %d in moli and %d in molj' %(edgeAtom_i,edgeAtom_j))
-                                is_bad=True
-                            if (moli.GetAtomWithIdx(edgeAtom_i).IsInRingSize(ring_size) or molj.GetAtomWithIdx(edgeAtom_j).IsInRingSize(ring_size)):
-                                break
+        # Calculate edge bonds once for each molecule
+        edge_bondsi = self.get_edge_bonds(moli, moli_sub)
+        edge_bondsj = self.get_edge_bonds(molj, molj_sub)
+        for i in edge_bondsi:
+            if i in edge_bondsj:
+                edgeAtom_i, edgeAtom_j = edge_bondsi[i], edge_bondsj[i]
+                if (moli.GetAtomWithIdx(edgeAtom_i).IsInRing() and molj.GetAtomWithIdx(edgeAtom_j).IsInRing()):
+                    for ring_size in range(3,8):
+                        if (moli.GetAtomWithIdx(edgeAtom_i).IsInRingSize(ring_size) ^ molj.GetAtomWithIdx(edgeAtom_j).IsInRingSize(ring_size)):
+                            logging.info('tRansforming ring sizes score is 0 based on atom %d in moli and %d in molj' %(edgeAtom_i,edgeAtom_j))
+                            is_bad=True
+                            break
+                        if (moli.GetAtomWithIdx(edgeAtom_i).IsInRingSize(ring_size) or molj.GetAtomWithIdx(edgeAtom_j).IsInRingSize(ring_size)):
+                            break
+            if is_bad:
+                break
 
         return 0.1 if is_bad else 1
 
