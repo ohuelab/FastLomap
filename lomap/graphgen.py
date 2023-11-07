@@ -122,6 +122,8 @@ class GraphGen(object):
         else:
             self.chunk_scale = 10
 
+        self.chunk_terminate_factor = dbase.options.get('chunk_terminate_factor', 2)
+
         # The following Section has been strongly copied/adapted from the original implementation
 
         # Generate a list related to the disconnected graphs present in the initial graph
@@ -418,14 +420,25 @@ class GraphGen(object):
                         logging.info("Skipping edge %d-%d as it has similarity 1" % (edge[0],edge[1]))
             elif len(subgraph.edges()) > 2:
                 # radial option is not supported in fast mode
+                N = len(subgraph)
+                M = len(subgraph.edges())
                 edges = [(i, j) for i, j, d in weightsList]
                 data = [{'similarity': d, 'strict_flag': True} for i, j, d in weightsList]
                 chunk_size = self.chunk_scale **int(np.log(len(weightsList))/np.log(self.chunk_scale))
+                terminate_n = int(self.chunk_terminate_factor * N)
+                chunk_list = list(range(0, M-terminate_n, chunk_size))+list(range(M-terminate_n, M))
                 # Process edges in chunks
-                for i in range(0, len(edges), chunk_size):
-                    edge_chunk = edges[i:i + chunk_size]
-                    data_chunk = data[i:i + chunk_size]
-                    chunk_process(edge_chunk, data_chunk, chunk_size, i)
+                for i, idx_i in enumerate(chunk_list):
+                    idx_j = chunk_list[i+1] if i<len(chunk_list)-1 else M
+                    chunk_size_l = idx_j - idx_i
+                    edge_chunk = edges[idx_i:idx_j]
+                    data_chunk = data[idx_i:idx_j]
+                    if len(edge_chunk) >1:
+                        logging.info('Process: #E={}, {} {}'.format(len(subgraph.edges()), idx_i, idx_j))
+                        chunk_process(edge_chunk, data_chunk, chunk_size_l, idx_i)
+                    else:
+                        logging.info('Process: #E={}, {} {}'.format(len(subgraph.edges()), idx_i, idx_j))
+                        check_chunk(edge_chunk, data_chunk)
 
     def add_surrounding_edges(self):
         """

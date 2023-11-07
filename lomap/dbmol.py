@@ -118,6 +118,7 @@ class DBMolecules(object):
                  max_dist_from_actives: int = 2,
                  chunk_mode: bool = False,
                  chunk_scale: int = 10,
+                 chunk_terminate_factor: float = 2.0,
                  node_mode: bool = False,
                  ):
 
@@ -234,6 +235,7 @@ class DBMolecules(object):
         self.options['known_actives_file'] = known_actives_file
         self.options['chunk_mode'] = bool(chunk_mode)
         self.options['chunk_scale'] = chunk_scale
+        self.options['chunk_terminate_factor'] = chunk_terminate_factor
         self.options['node_mode'] = bool(node_mode)
 
         # Internal list container used to store the loaded molecule objects
@@ -1071,7 +1073,7 @@ def startup():
                    output_no_graph=ops.output_no_graph, display=ops.display,
                    allow_tree=ops.allow_tree, max=ops.max, max_dist_from_actives=ops.max_dist_from_actives,
                    cutoff=ops.cutoff, radial=ops.radial, hub=ops.hub, fast=ops.fast, links_file=ops.links_file,
-                   known_actives_file=ops.known_actives_file, chunk_mode=ops.chunk_mode, chunk_scale=ops.chunk_scale, node_mode=ops.node_mode
+                   known_actives_file=ops.known_actives_file, chunk_mode=ops.chunk_mode, chunk_scale=ops.chunk_scale, chunk_terminate_factor = ops.chunk_terminate_factor, node_mode=ops.node_mode
                    )
 
 
@@ -1100,6 +1102,7 @@ def _startup_inner(
         known_actives_file='',
         chunk_mode=False,
         chunk_scale = 10,
+        chunk_terminate_factor = 2.0,
         node_mode=False,):
     # Inside function of CLI interface, for start of "library" like calling
 
@@ -1108,7 +1111,7 @@ def _startup_inner(
                          max3d, element_change, output, name, output_no_images,
                          output_no_graph, display, allow_tree, max, cutoff,
                          radial, hub, fast, links_file,
-                         known_actives_file, max_dist_from_actives, chunk_mode, chunk_scale, node_mode)
+                         known_actives_file, max_dist_from_actives, chunk_mode, chunk_scale, chunk_terminate_factor, node_mode)
     # Similarity score linear array generation
     strict, loose = db_mol.build_matrices()
 
@@ -1189,6 +1192,8 @@ graph_group.add_argument('--chunk-mode', action='store_true', \
                          help='Run graph generation with the number of calculations dependent on the node by checking constraints in chunks.')
 graph_group.add_argument('--chunk-scale', type=int, default=10, \
                          help='In chunk mode, how many times the number of chunks to split.')
+graph_group.add_argument('--chunk-terminate-factor', type=float, default=2.0, \
+                            help='Specifies the factor to multiply by the number of nodes to decide when to end chunk processing.')
 graph_group.add_argument('--node-mode', action='store_true', \
                          help='Cycle constraints at vertices, not edges.')
 # ------------------------------------------------------------------
